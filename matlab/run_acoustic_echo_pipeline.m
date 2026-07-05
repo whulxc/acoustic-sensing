@@ -1,4 +1,4 @@
-clearvars -except DfileName DfilePath output_stereo
+clearvars -except DfileName DfilePath output_stereo ResultPath
 clf
 close all;
 
@@ -77,11 +77,7 @@ if ~exist(mat_file, 'file')
 end
 
 origin_data = load_data_vector(mat_file, DfileName);
-       save(DfilePath+"\"+DfileName2m,DfileName); 
-   end
-end
 %原始音频数据
-origin_data=importdata(DfilePath+"\"+DfileName2m); 
 
 %时间戳均在后
 %剔除开始和结束时间戳
@@ -128,7 +124,7 @@ origin_data_stereo_polydetrend{i}=origin_data_stereo_polydetrend{i}';
 %带通滤波
 %origin_data_stereo_bandpass{i}= filter(filter_bandpass, origin_data_stereo_polydetrend{i});%注意群时延，大概延迟207-146个点，实际应该可以抵消
 
-[origin_data_stereo_bandpass{i}, ~] = bp_firpm(origin_data_stereo_polydetrend{i}, fs, [f0 f1], [f_low f_high], 600);
+[origin_data_stereo_bandpass{i}, ~] = bandpass_firpm_zero_phase(origin_data_stereo_polydetrend{i}, fs, [f0 f1], [f_low f_high], 600);
 origin_data_stereo_bandpass{i}=origin_data_stereo_bandpass{i}';
 end
 
@@ -158,11 +154,7 @@ end
 % compare_xcorr_index=0;
 % size_sum_template_refer=size(template_refer{i});
 % sum_power_template_refer{i}=norm(template_refer{i});
-% for j=1:30000 
-%       compare_xcorr_index=compare_xcorr_index+1;
-%       sum_power_origin_data_window=norm(origin_data_stereo_bandpass{i}(j:j+size_sum_template_refer(1,2)-1));
-%       temp_xcorr_array(compare_xcorr_index)=dot(origin_data_stereo_bandpass{i}(j:j+size_sum_template_refer(1,2)-1),template_refer{i})/sum_power_origin_data_window/sum_power_template_refer{i};
-% end
+% Use sliding_template_correlation_fft(...) for NCC diagnostics.
 % plot(temp_xcorr_array,'color','r');
 % clear temp_xcorr_array;
 % end
@@ -180,12 +172,12 @@ end
 
 %% 周期脉冲分帧，在与模板信号NCC最大处向前若干为起点分帧 %%
 if output_stereo==1
-[transmit_delay{1},Frame_signal{1},Frame_signal_CC{1},Frame_signal_NCC{1},Frame_signal_CC_hilbert{1},Frame_signal_CC_start_index{1},Frame_signal_CC_hilbert_redue{1}]=split_chirp_frames(origin_data_stereo_bandpass{1},template_refer{1},first_xcorr_thred(1));
+[transmit_delay{1},Frame_signal{1},Frame_signal_CC{1},Frame_signal_NCC{1},Frame_signal_CC_hilbert{1},Frame_signal_CC_start_index{1},Frame_signal_CC_hilbert_redue{1}]=split_chirp_frames(origin_data_stereo_bandpass{1},template_refer{1},first_xcorr_thred(1),soundIntervalPot);
 elseif output_stereo==2
-[transmit_delay{2},Frame_signal{2},Frame_signal_CC{2},Frame_signal_NCC{2},Frame_signal_CC_hilbert{2},Frame_signal_CC_start_index{2},Frame_signal_CC_hilbert_redue{2}]=split_chirp_frames(origin_data_stereo_bandpass{2},template_refer{2},first_xcorr_thred(2));
+[transmit_delay{2},Frame_signal{2},Frame_signal_CC{2},Frame_signal_NCC{2},Frame_signal_CC_hilbert{2},Frame_signal_CC_start_index{2},Frame_signal_CC_hilbert_redue{2}]=split_chirp_frames(origin_data_stereo_bandpass{2},template_refer{2},first_xcorr_thred(2),soundIntervalPot);
 else
-[transmit_delay{1},Frame_signal{1},Frame_signal_CC{1},Frame_signal_NCC{1},Frame_signal_CC_hilbert{1},Frame_signal_CC_start_index{1},Frame_signal_CC_hilbert_redue{1}]=split_chirp_frames(origin_data_stereo_bandpass{1},template_refer{1},first_xcorr_thred(1));  
-[transmit_delay{2},Frame_signal{2},Frame_signal_CC{2},Frame_signal_NCC{2},Frame_signal_CC_hilbert{2},Frame_signal_CC_start_index{2},Frame_signal_CC_hilbert_redue{2}]=split_chirp_frames(origin_data_stereo_bandpass{2},template_refer{2},first_xcorr_thred(2));
+[transmit_delay{1},Frame_signal{1},Frame_signal_CC{1},Frame_signal_NCC{1},Frame_signal_CC_hilbert{1},Frame_signal_CC_start_index{1},Frame_signal_CC_hilbert_redue{1}]=split_chirp_frames(origin_data_stereo_bandpass{1},template_refer{1},first_xcorr_thred(1),soundIntervalPot);  
+[transmit_delay{2},Frame_signal{2},Frame_signal_CC{2},Frame_signal_NCC{2},Frame_signal_CC_hilbert{2},Frame_signal_CC_start_index{2},Frame_signal_CC_hilbert_redue{2}]=split_chirp_frames(origin_data_stereo_bandpass{2},template_refer{2},first_xcorr_thred(2),soundIntervalPot);
 end 
 
 select_Frame_signal=Frame_signal{2};
@@ -293,7 +285,7 @@ if per_temp_sum_minR_xy_redue_jubu_hilbert_1(i)<0.2
    filter_R_xy_redue_jubu_hilbert_1(i,:)=zeros(size(R_xy_redue_jubu_hilbert_1,2),1);
 end
 end
-%大尺度时间-距离的CC图
+% Large-scale time-distance CC map after the display-level suppression step.
 figure1=figure;
 title('大尺度时间-距离的CC图-处理');
 xlim([compare_transmit_time(1),compare_transmit_time(end)]);
@@ -301,16 +293,21 @@ ylim([Distance_array(Distance_arrayStartIndex_Large),Distance_array(Distance_arr
 hold on
 imagesc(compare_transmit_time,Distance_array(Distance_arrayStartIndex_Large:Distance_arrayEndIndex_Large),R_xy_redue_jubu_hilbert_1); 
 set(gca,'YDir','normal')
+xlabel('Time (s)');
+ylabel('Distance (m)');
 %colorbar;
 caxis([0 max_minR_xy_redue_jubu_hilbert_1]) 
 hold off
 
-%%不加密结果可视化
+%% Unprocessed large-scale CC-map visualization
 for i=1:length(Frame_signal_CC_hilbert_redue{2}{1}) %距离数
     Distance_array_1(i)=(i-1)/fs*V_sound/2;  %% 回波距离序列 %%
 end
 [Distance_arrayStartIndex_Large_1,Distance_arrayEndIndex_Large_1]=value_to_index(Distance_array_1,startDist2DistStartIndex,endDist2DistEndIndex);
-%大尺度时间-距离的CC图
+X_t = compare_transmit_time;
+Y_dis = Distance_array(Distance_arrayStartIndex_Large:Distance_arrayEndIndex_Large);
+Z_CC = R_xy_redue_jubu_hilbert_1;
+% Large-scale time-distance CC map before the display-level suppression step.
 figure2=figure;
 title('大尺度时间-距离的CC图-不处理');
 xlim([compare_transmit_time(1),compare_transmit_time(end)]);
@@ -318,53 +315,55 @@ ylim([Distance_array_1(Distance_arrayStartIndex_Large_1),Distance_array_1(Distan
 hold on
 imagesc(compare_transmit_time,Distance_array_1(Distance_arrayStartIndex_Large_1:Distance_arrayEndIndex_Large_1),R_xy_redue_jubu_hilbert_1); 
 set(gca,'YDir','normal')
+xlabel('Time (s)');
+ylabel('Distance (m)');
 colorbar;
 %caxis([0 0.06]) 
 hold off
 
 %% save成txt格式 %%
 %% 导出时间-距离的CC数据 %%
-correlation_output_path=fullfile(DfilePath,'correlation_map.txt');
-fid=fopen(correlation_output_path,'w');
-[m,n]=size(Z_CC);
-for i=1:m
-   for j=1:n
-      if j==n
-         fprintf(fid,'%f\n',Z_CC(i,j));
-      else
-         fprintf(fid,'%f ',Z_CC(i,j));
-      end
-   end 
-end
-fclose(fid);
+% Standard names are easier to read; legacy names preserve old workflows.
+save_matrix_text(fullfile(DfilePath, 'correlation_map.txt'), Z_CC);
+save_matrix_text(fullfile(DfilePath, 'CCvalue.txt'), Z_CC);
 %% 导出距离的数据 %%
-distance_output_path=fullfile(DfilePath,'distance_axis.txt');
-fid=fopen(distance_output_path,'w');
-[m,n]=size(Y_dis);
-for i=1:m
-   for j=1:n
-      if j==n
-         fprintf(fid,'%f\n',Y_dis(i,j));
-      else
-         fprintf(fid,'%f ',Y_dis(i,j));
-      end
-   end 
-end
-fclose(fid);
+save_matrix_text(fullfile(DfilePath, 'distance_axis.txt'), Y_dis);
+save_matrix_text(fullfile(DfilePath, 'Disvalue.txt'), Y_dis);
 %% 导出时间的数据 %%
-time_output_path=fullfile(DfilePath,'time_axis.txt');
-fid=fopen(time_output_path,'w');
-[m,n]=size(X_t);
-for i=1:m
-   for j=1:n
-      if j==n
-         fprintf(fid,'%f\n',X_t(i,j));
-      else
-         fprintf(fid,'%f ',X_t(i,j));
-      end
-   end 
+save_matrix_text(fullfile(DfilePath, 'time_axis.txt'), X_t);
+save_matrix_text(fullfile(DfilePath, 'Tvalue.txt'), X_t);
+
+if exist('ResultPath', 'var') && ~isempty(ResultPath)
+    if ~exist(ResultPath, 'dir')
+        mkdir(ResultPath);
+    end
+
+    save_matrix_text(fullfile(ResultPath, 'correlation_map.txt'), Z_CC);
+    save_matrix_text(fullfile(ResultPath, 'distance_axis.txt'), Y_dis);
+    save_matrix_text(fullfile(ResultPath, 'time_axis.txt'), X_t);
+    save_matrix_text(fullfile(ResultPath, 'CCvalue.txt'), Z_CC);
+    save_matrix_text(fullfile(ResultPath, 'Disvalue.txt'), Y_dis);
+    save_matrix_text(fullfile(ResultPath, 'Tvalue.txt'), X_t);
+
+    correlation_map = Z_CC; %#ok<NASGU>
+    distance_axis = Y_dis; %#ok<NASGU>
+    time_axis = X_t; %#ok<NASGU>
+    save(fullfile(ResultPath, 'correlation_map.mat'), 'correlation_map');
+    save(fullfile(ResultPath, 'distance_axis.mat'), 'distance_axis');
+    save(fullfile(ResultPath, 'time_axis.mat'), 'time_axis');
+
+    if exist('figure1', 'var') && isgraphics(figure1)
+        savefig(figure1, fullfile(ResultPath, 'acoustic_echo_result.fig'));
+        exportgraphics(figure1, fullfile(ResultPath, 'acoustic_echo_result.png'), ...
+            'Resolution', 150);
+        exportgraphics(figure1, fullfile(ResultPath, 'time_distance_cc_processed.png'), ...
+            'Resolution', 150);
+    end
+    if exist('figure2', 'var') && isgraphics(figure2)
+        exportgraphics(figure2, fullfile(ResultPath, 'time_distance_cc_unprocessed.png'), ...
+            'Resolution', 150);
+    end
 end
-fclose(fid);
 
 function template = load_template_vector(mat_path, txt_path)
     if exist(mat_path, 'file')
@@ -406,52 +405,6 @@ function values = first_numeric_vector(loaded)
     error('Expected a numeric vector in the loaded file.');
 end
 
-function [y, b] = bp_firpm(x, Fs, passband, stopband, N, W)
-%BP_FIRPM 设计等波纹 FIR 带通滤波器并对信号滤波
-%
-%   [y, b] = bp_firpm(x, Fs, passband, stopband, N, W)
-%
-%   输入参数：
-%       x        - 输入信号 (列向量或行向量均可)
-%       Fs       - 采样率 (Hz)
-%       passband - 通带频率范围 [f1 f2] (Hz)，例如 [12000 15000]
-%       stopband - 阻带频率范围 [fstop1 fstop2] (Hz)，
-%                  例如 [11600 15400]，分别对应通带两侧阻带边界
-%       N        - 滤波器阶数（越大通带越平坦，典型值 400-800）
-%       W        - 权重 [w_stop1, w_pass, w_stop2]，控制不同带宽的重要性
-%                  一般可设为 [10 1 10]
-%
-%   输出参数：
-%       y  - 滤波后的信号（零相位 filtfilt 处理）
-%       b  - FIR 滤波器系数
-%
-%   示例：
-%       Fs = 48000;
-%       load handel.mat; % 示例音频
-%       x = y;           % 原始信号
-%       [y_filt, b] = bp_firpm(x, Fs, [12000 15000], [11600 15400], 500, [10 1 10]);
-%       sound(y_filt, Fs);
-%
-%   作者：ChatGPT（封装自 firpm 等波纹 FIR 带通设计方案）
-
-    % 参数检查
-    if nargin < 6
-        W = [10 1 10]; % 默认权重
-    end
-
-    % 归一化频率 (0~1 对应 0~Fs/2)
-    F = [0 stopband(1) passband(1) passband(2) stopband(2) Fs/2] / (Fs/2);
-
-    % 幅值目标
-    A = [0 0 1 1 0 0];
-
-    % 设计滤波器
-    b = firpm(N, F, A, W);
-
-    % 零相位滤波
-    y = filtfilt(b, 1, x(:));
-
-end
 function [t_fine, r_interp, toa_sinc] = sinc_interp_cc(r, Fs, OSF)
 % SINC_INTERP_CC 对互相关结果进行 sinc 插值，获得超采样精度的互相关
 %

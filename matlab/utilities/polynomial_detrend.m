@@ -1,7 +1,11 @@
-function [y,xtrend]=polynomial_detrend(x, fs, m)
-x=x(:);                 % 把语音信号x转换为列数据
-N=length(x);            % 求出x的长度
-t= (0: N-1)'/fs;        % 按x的长度和采样频率设置时间序列
-a=polyfit(t, x, m);     % 用最小二乘法拟合语音信号x的多项式系数a
-xtrend=polyval(a, t);   % 用系数a和时间序列t构成趋势项
-y=x-xtrend;   
+function [detrended_signal, trend_signal] = polynomial_detrend(signal, fs, degree)
+%POLYNOMIAL_DETREND Remove a polynomial trend from a 1-D signal.
+
+signal = signal(:);
+num_samples = numel(signal);
+time = (0:num_samples - 1)' / fs;
+
+coefficients = polyfit(time, signal, degree);
+trend_signal = polyval(coefficients, time);
+detrended_signal = signal - trend_signal;
+end

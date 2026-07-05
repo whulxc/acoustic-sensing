@@ -3,6 +3,7 @@ repo_root = fileparts(fileparts(mfilename('fullpath')));
 
 DfileName = 'Record';
 DfilePath = fullfile(repo_root, 'data', 'example');
+ResultPath = fullfile(repo_root, 'examples', 'results', 'current_run');
 output_stereo = 2; % 1: top channel, 2: bottom channel, 3: both channels
 
 txt_file = fullfile(DfilePath, [DfileName '.txt']);
