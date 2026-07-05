@@ -2,6 +2,12 @@
 
 MATLAB implementation for acoustic echo sensing with a 17-23 kHz chirp. The main pipeline loads a stereo recording, applies detrending and band-pass filtering, segments chirp frames by normalized cross-correlation, estimates echo distance responses, and exports time-distance correlation results.
 
+![Example acoustic echo result](examples/results/sample_run/acoustic_echo_result.svg)
+
+## Example Output
+
+The repository includes one processed sample result in `examples/results/sample_run/`. It contains the exported distance axis, time axis, tracking outputs, and the lightweight SVG preview shown above. The raw recording is intentionally excluded because it is large, but the saved outputs can be used to inspect the expected result format.
+
 ## Repository Layout
 
 - `matlab/run_acoustic_echo_pipeline.m` - main acoustic sensing pipeline.
