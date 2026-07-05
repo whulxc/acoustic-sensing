@@ -1,0 +1,13 @@
+project_name: acoustic-sensing
+project_root: <repository-root>
+data_policy:
+  default_data_root: data/example
+  repository_data_dir: data/example
+  keep_large_raw_data_out_of_git: true
+  ignored_large_inputs:
+    - Record.txt
+    - Record.mat
+    - Sensors.txt
+compute_policy:
+  matlab_version_tested: R2022a
+  requires_signal_processing_toolbox: true
