@@ -4,14 +4,14 @@ MATLAB implementation for acoustic echo sensing with a 17-23 kHz chirp. The main
 
 ## Repository Layout
 
-- `matlab/Track_PreData_v2.m` - main acoustic sensing pipeline.
-- `matlab/splitFrame0313.m` - chirp frame segmentation by template correlation.
-- `matlab/Value2index0319.m` - value-to-index helper for time and distance windows.
-- `matlab/DrawAnalyse0319.m` - optional visualization and analysis helper.
-- `matlab/applyFunction/` - utility functions used by the pipeline.
-- `matlab/template/` - small chirp template text files.
-- `examples/run_track_predata_v2_example.m` - example launcher.
-- `examples/results/test/` - sample output files from one local test run.
+- `matlab/run_acoustic_echo_pipeline.m` - main acoustic sensing pipeline.
+- `matlab/split_chirp_frames.m` - chirp frame segmentation by template correlation.
+- `matlab/value_to_index.m` - value-to-index helper for time and distance windows.
+- `matlab/plot_time_distance_analysis.m` - optional visualization and analysis helper.
+- `matlab/utilities/` - utility functions used by the pipeline.
+- `matlab/templates/` - small chirp template text files.
+- `examples/run_sample_pipeline.m` - example launcher.
+- `examples/results/sample_run/` - sample output files from one local test run.
 - `data/example/` - local input data location, intentionally ignored by git.
 
 ## Requirements
@@ -28,19 +28,19 @@ The raw input recording is not committed because the original `Record.txt` file 
 3. Run:
 
 ```matlab
-run examples/run_track_predata_v2_example.m
+run examples/run_sample_pipeline.m
 ```
 
 The script writes these outputs to the same data directory:
 
-- `CCvalue.txt`
-- `Disvalue.txt`
-- `Tvalue.txt`
+- `correlation_map.txt`
+- `distance_axis.txt`
+- `time_axis.txt`
 
-The expected recording format is the original interleaved stereo sample vector used by `Track_PreData_v2.m`, with the final two values storing start and end timestamps in nanoseconds.
+The expected recording format is the original interleaved stereo sample vector used by `run_acoustic_echo_pipeline.m`, with the final two values storing start and end timestamps in nanoseconds.
 
 ## Notes
 
-- `Track_PreData_v2.m` can also be run directly. By default it reads from `data/example/Record.txt`.
+- `run_acoustic_echo_pipeline.m` can also be run directly. By default it reads from `data/example/Record.txt`.
 - To use another data directory, set `DfilePath`, `DfileName`, and optionally `output_stereo` before running the script.
 - No open-source license has been selected yet.
