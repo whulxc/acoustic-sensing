@@ -4,3 +4,4 @@
 *.yaml text
 *.mat binary
 *.png binary
+*.fig binary

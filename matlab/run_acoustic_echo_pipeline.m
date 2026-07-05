@@ -1,67 +1,82 @@
 clearvars -except DfileName DfilePath output_stereo
 clf
 close all;
-script_dir=fileparts(mfilename('fullpath'));
-repo_root=fileparts(script_dir);
+
+script_dir = fileparts(mfilename('fullpath'));
+repo_root = fileparts(script_dir);
+
 global fs
 global V_sound
 global soundIntervalPot
-fs=48000; %采样频率
-V_sound=346;%声速
-soundIntervalPot=2000; %发声间隔点数 
-Ts=1/fs;  %采样间隔
-soundInterval=soundIntervalPot/fs; %发声间隔
-if ~exist('output_stereo','var') || isempty(output_stereo)
-    output_stereo=2; %1:仅输出顶部声道 2:仅输底部声道 3.输出顶部和底部声道
+
+fs = 48000;              % sample rate
+V_sound = 346;           % sound speed
+soundIntervalPot = 2000; % chirp interval in samples
+Ts = 1 / fs;             %#ok<NASGU>
+soundInterval = soundIntervalPot / fs; %#ok<NASGU>
+
+if ~exist('output_stereo', 'var') || isempty(output_stereo)
+    output_stereo = 2; % 1: top channel, 2: bottom channel, 3: both channels
 end
 
-%% chirp参数设置
-f0 = 17000;       % 起始频率 Hz
-f1 = 23000;       % 终止频率 Hz
-f_low=f0-400;
-f_high=f1+400;
-T  = 0.01;       % 持续时间 s
-use_window = 1;   % 是否加 Hann 窗 (1=加, 0=不加)
-signalGain = 0.8; % 与 Java 代码一致
+%% Chirp parameters
+f0 = 17000;       % start frequency, Hz
+f1 = 23000;       % stop frequency, Hz
+f_low = f0 - 400;
+f_high = f1 + 400;
+T  = 0.01;        %#ok<NASGU> % duration, seconds
+use_window = 1;   %#ok<NASGU> % reserved for chirp generation
+signalGain = 0.8; %#ok<NASGU> % matches the Android-side signal gain
 
-%% 导入辅助函数 %%
-apply_path=fullfile(script_dir,'utilities');
-addpath(genpath(apply_path))%调用该路径下的函数
-%% 导入模板信号 %%
-template_path=fullfile(script_dir,'templates','chirp_17_23khz_10ms');
-template_refer_top_mat=importdata(fullfile(template_path,'reference_bottom_channel.txt')); %顶部麦克风（幅值大）
-template_refer_botton_mat=importdata(fullfile(template_path,'reference_top_channel.txt'));  %底部麦克风（幅值小）
+%% Helper functions
+apply_path = fullfile(script_dir, 'utilities');
+addpath(genpath(apply_path))
 
-%% 导入并预处理音频数据（仅有txt文件则生成mat文件以加速调用）%%
-if ~exist('DfileName','var') || isempty(DfileName)
-    DfileName='Record'; %数据文件名
+%% Reference templates from the current experiment configuration
+template_path = fullfile(script_dir, 'templates', 'chirp_17_23khz_10ms');
+template_refer_top_mat = load_template_vector( ...
+    fullfile(template_path, 'reference_bottom_channel.mat'), ...
+    fullfile(template_path, 'reference_bottom_channel.txt'));
+template_refer_botton_mat = load_template_vector( ...
+    fullfile(template_path, 'reference_top_channel.mat'), ...
+    fullfile(template_path, 'reference_top_channel.txt'));
+
+%% Input recording
+if ~exist('DfileName', 'var') || isempty(DfileName)
+    DfileName = 'Record';
 end
-if ~exist('DfilePath','var') || isempty(DfilePath)
-    DfilePath=fullfile(repo_root,'data','example'); %数据路径
+if ~exist('DfilePath', 'var') || isempty(DfilePath)
+    DfilePath = fullfile(repo_root, 'data', 'example');
 end
-DfileName=char(DfileName);
-DfilePath=char(DfilePath);
+DfileName = char(DfileName);
+DfilePath = char(DfilePath);
 
-template_refer{1}=template_refer_top_mat;
-template_refer{2}=template_refer_botton_mat;
+template_refer{1} = template_refer_top_mat;
+template_refer{2} = template_refer_botton_mat;
 
-%template_refer{1}=ChirpTemplate(15000,20000,0.010,48000,1); %理论信号模板
-%template_refer{2}=ChirpTemplate(15000,20000,0.010,48000,1); %理论信号模板
+%template_refer{1}=ChirpTemplate(15000,20000,0.010,48000,1); % theoretical template
+%template_refer{2}=ChirpTemplate(15000,20000,0.010,48000,1); % theoretical template
 sum_template_refer{1}=norm(template_refer{1});
 sum_template_refer{2}=norm(template_refer{2});
-first_xcorr_thred(1)=0.9; %NCC相关度门限
-first_xcorr_thred(2)=0.7; %NCC相关度门限
+first_xcorr_thred(1)=0.9; % NCC threshold
+first_xcorr_thred(2)=0.7; % NCC threshold
 
-DfileName2m=DfileName+".mat";
-DfileName2txt=DfileName+".txt";
-%不存在txt文件则报错
-if ~exist(DfilePath+"\"+DfileName2txt,'file')
-    error('no txtFile');    
-else
-   %当不存在txt数据文件时，生成mat数据文件
-   if ~exist(DfilePath+"\"+DfileName2m,'file')
-       display('no mfile and create');
-       load(DfilePath+"\"+DfileName2txt);
+DfileName2m = DfileName + ".mat";
+DfileName2txt = DfileName + ".txt";
+mat_file = fullfile(DfilePath, char(DfileName2m));
+txt_file = fullfile(DfilePath, char(DfileName2txt));
+
+if ~exist(mat_file, 'file')
+   if exist(txt_file, 'file')
+       disp('No MAT recording found; creating it from the TXT recording.');
+       load(txt_file);
+       save(mat_file, DfileName);
+   else
+       error('Place %s or %s before running this script.', txt_file, mat_file);
+   end
+end
+
+origin_data = load_data_vector(mat_file, DfileName);
        save(DfilePath+"\"+DfileName2m,DfileName); 
    end
 end
@@ -350,6 +365,47 @@ for i=1:m
    end 
 end
 fclose(fid);
+
+function template = load_template_vector(mat_path, txt_path)
+    if exist(mat_path, 'file')
+        loaded = importdata(mat_path);
+    elseif exist(txt_path, 'file')
+        loaded = importdata(txt_path);
+    else
+        error('Missing template file: %s or %s', mat_path, txt_path);
+    end
+    template = first_numeric_vector(loaded);
+end
+
+function data = load_data_vector(mat_path, variable_name)
+    loaded = importdata(mat_path);
+    if isstruct(loaded) && isfield(loaded, variable_name)
+        data = loaded.(variable_name);
+    else
+        data = first_numeric_vector(loaded);
+    end
+end
+
+function values = first_numeric_vector(loaded)
+    if isnumeric(loaded)
+        values = loaded(:).';
+        return
+    end
+
+    if isstruct(loaded)
+        names = fieldnames(loaded);
+        for index = 1:numel(names)
+            candidate = loaded.(names{index});
+            if isnumeric(candidate)
+                values = candidate(:).';
+                return
+            end
+        end
+    end
+
+    error('Expected a numeric vector in the loaded file.');
+end
+
 function [y, b] = bp_firpm(x, Fs, passband, stopband, N, W)
 %BP_FIRPM 设计等波纹 FIR 带通滤波器并对信号滤波
 %

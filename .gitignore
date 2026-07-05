@@ -1,6 +1,8 @@
 *.asv
 *.fig
+!examples/results/current_run/acoustic_echo_result.fig
 *.mlx.autosave
 
 data/example/*
 !data/example/.gitkeep
+!data/example/Record.mat

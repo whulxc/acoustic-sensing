@@ -2,11 +2,13 @@
 
 MATLAB implementation for acoustic echo sensing with a 17-23 kHz chirp. The main pipeline loads a stereo recording, applies detrending and band-pass filtering, segments chirp frames by normalized cross-correlation, estimates echo distance responses, and exports time-distance correlation results.
 
-![Example acoustic echo result](examples/results/sample_run/acoustic_echo_result.svg)
+![Example acoustic echo result](examples/results/current_run/acoustic_echo_result.png)
 
 ## Example Output
 
-The repository includes one processed sample result in `examples/results/sample_run/`. It contains the exported distance axis, time axis, tracking outputs, and the lightweight SVG preview shown above. The raw recording is intentionally excluded because it is large, but the saved outputs can be used to inspect the expected result format.
+The repository includes the current MATLAB script's example recording as `data/example/Record.mat`, the matching transmit-reference templates in `matlab/templates/chirp_17_23khz_10ms/`, and generated outputs in `examples/results/current_run/`. The image shown above is the exported visualization from that run.
+
+The original text recording `Record.txt` is not committed because it is about 105 MB and exceeds GitHub's regular single-file limit. `Record.mat` is the compact MATLAB version used by the example pipeline.
 
 ## Repository Layout
 
@@ -15,10 +17,11 @@ The repository includes one processed sample result in `examples/results/sample_
 - `matlab/value_to_index.m` - value-to-index helper for time and distance windows.
 - `matlab/plot_time_distance_analysis.m` - optional visualization and analysis helper.
 - `matlab/utilities/` - utility functions used by the pipeline.
-- `matlab/templates/` - small chirp template text files.
+- `matlab/templates/` - chirp template MAT files plus text copies.
 - `examples/run_sample_pipeline.m` - example launcher.
+- `examples/results/current_run/` - current script outputs, including PNG, FIG, MAT, and text files.
 - `examples/results/sample_run/` - sample output files from one local test run.
-- `data/example/` - local input data location, intentionally ignored by git.
+- `data/example/Record.mat` - compact recording used by the included example.
 
 ## Requirements
 
@@ -27,15 +30,16 @@ The repository includes one processed sample result in `examples/results/sample_
 
 ## Run The Example
 
-The raw input recording is not committed because the original `Record.txt` file is about 105 MB. To run locally:
+The compact MATLAB recording is included in `data/example/Record.mat`. To run locally:
 
-1. Put `Record.txt` or `Record.mat` in `data/example/`.
-2. Open MATLAB at the repository root.
-3. Run:
+1. Open MATLAB at the repository root.
+2. Run:
 
 ```matlab
 run examples/run_sample_pipeline.m
 ```
+
+The script reads `data/example/Record.mat` by default. If you only have a text recording, place `Record.txt` in `data/example/`; the script will create `Record.mat` automatically.
 
 The script writes these outputs to the same data directory:
 
@@ -47,6 +51,6 @@ The expected recording format is the original interleaved stereo sample vector u
 
 ## Notes
 
-- `run_acoustic_echo_pipeline.m` can also be run directly. By default it reads from `data/example/Record.txt`.
+- `run_acoustic_echo_pipeline.m` can also be run directly. By default it reads from `data/example/Record.mat`.
 - To use another data directory, set `DfilePath`, `DfileName`, and optionally `output_stereo` before running the script.
 - No open-source license has been selected yet.
